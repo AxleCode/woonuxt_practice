@@ -40,9 +40,39 @@ query getProduct($slug: ID!, $frontEndUrl: String = "") {
   }
 }
 fragment ProductWithAttributes on ProductWithAttributes {
-  attributes {
-    nodes {
-      ...ProductAttribute
+  ... on Product {
+    attributes {
+      nodes {
+        ...ProductAttribute
+      }
+    }
+  }
+  ... on ExternalProduct {
+    attributes {
+      nodes {
+        ...ProductAttribute
+      }
+    }
+  }
+  ... on GroupProduct {
+    attributes {
+      nodes {
+        ...ProductAttribute
+      }
+    }
+  }
+  ... on SimpleProduct {
+    attributes {
+      nodes {
+        ...ProductAttribute
+      }
+    }
+  }
+  ... on VariableProduct {
+    attributes {
+      nodes {
+        ...ProductAttribute
+      }
     }
   }
 }
