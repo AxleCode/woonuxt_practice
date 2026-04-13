@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { ImageFragment, Product, ProductVariationFragment, VariationAttribute } from '#types/gql';
+import { ProductTypesEnum, StockStatusEnum, type AddToCartInput } from '#gql/default';
 
 const route = useRoute();
 const { storeSettings } = useAppConfig();
+const { addToCart, toggleCart } = useCart();
 
 const props = defineProps({
   node: { type: Object as PropType<Product>, required: true },
@@ -117,6 +119,26 @@ const productLink = computed<string>(() => {
   return baseUrl;
 });
 
+const isSimpleProduct = computed<boolean>(() => props.node?.type === ProductTypesEnum.SIMPLE);
+const isVariableProduct = computed<boolean>(() => props.node?.type === ProductTypesEnum.VARIABLE);
+const isExternalProduct = computed<boolean>(() => props.node?.type === ProductTypesEnum.EXTERNAL);
+
+const isOutOfStock = computed<boolean>(() => props.node?.stockStatus === StockStatusEnum.OUT_OF_STOCK);
+const canAddDirectly = computed<boolean>(() => isSimpleProduct.value && !!props.node?.databaseId && !isExternalProduct.value);
+
+const isAddingFromCard = ref(false);
+const handleAddToCart = async (): Promise<void> => {
+  if (!canAddDirectly.value || isAddingFromCard.value) return;
+  isAddingFromCard.value = true;
+  try {
+    const input: AddToCartInput = { productId: props.node.databaseId, quantity: 1 };
+    await addToCart(input);
+    toggleCart(true);
+  } finally {
+    isAddingFromCard.value = false;
+  }
+};
+
 const updateCurrentSlide = () => {
   const container = sliderRef.value;
   if (!container) return;
@@ -203,7 +225,7 @@ watch(
           :class="dotIndex === currentSlide ? 'bg-white' : 'bg-gray-400/60'"
           type="button"
           tabindex="-1"
-          :aria-label="`View image ${dotIndex + 1} of ${sliderImages.length}`"
+          :aria-label="`View image ${Number(dotIndex) + 1} of ${sliderImages.length}`"
           @click="scrollToSlide(dotIndex)" />
       </div>
     </div>
@@ -213,6 +235,24 @@ watch(
         <h2 class="mb-2 font-light leading-tight text-gray-900 dark:text-gray-200 group-hover:text-primary">{{ node.name }}</h2>
       </NuxtLink>
       <ProductPrice class="text-sm" :sale-price="node.salePrice ?? undefined" :regular-price="node.regularPrice ?? undefined" />
+
+      <div class="mt-3 card-trigger">
+        <Button
+          v-if="canAddDirectly"
+          class="w-full"
+          type="button"
+          :disabled="isOutOfStock || isAddingFromCard"
+          :loading="isAddingFromCard"
+          @click="handleAddToCart">
+          {{ $t('shop.addToCart') }}
+        </Button>
+
+        <NuxtLink v-else-if="node.slug" :to="productLink" class="block">
+          <Button class="w-full" type="button">
+            {{ isVariableProduct ? 'View options' : 'View product' }}
+          </Button>
+        </NuxtLink>
+      </div>
     </div>
   </div>
 </template>

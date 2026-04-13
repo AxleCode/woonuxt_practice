@@ -37,7 +37,8 @@ useHead({
     <AppHeader />
 
     <Transition name="slide-from-right">
-      <Cart v-if="isShowingCart" />
+      <!-- Keep mounted to avoid re-fetch/re-mount delays on open -->
+      <Cart v-show="isShowingCart" />
     </Transition>
 
     <Transition name="slide-from-left">
