@@ -25,7 +25,7 @@ const popularProducts = computed<Product[]>(() => (productData.value?.products?.
               v-for="product in popularProducts"
               :key="product.databaseId || product.slug"
               :to="product.slug ? `/product/${decodeURIComponent(product.slug)}` : undefined"
-              class="group flex flex-col gap-2  p-3 hover:border-primary/40 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/30">
+              class="group flex flex-col gap-2 p-3 hover:border-primary/40 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/30">
               <NuxtImg
                 class="h-36 w-full rounded-md object-contain"
                 :src="product.image?.sourceUrl || '/images/placeholder.jpg'"
@@ -52,7 +52,7 @@ const popularProducts = computed<Product[]>(() => (productData.value?.products?.
         <Icon
           name="ion:close-outline"
           class="absolute p-1 rounded-lg shadow-lg top-6 left-6 md:left-8 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-          size="34"
+          size="34" 
           @click="toggleCart(false)" />
 
         <EmptyCart v-if="cart && !cart.isEmpty" class="rounded-lg shadow-lg p-1.5 hover:bg-red-400 hover:text-white" />

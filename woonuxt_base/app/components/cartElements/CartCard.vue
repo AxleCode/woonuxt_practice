@@ -11,7 +11,7 @@ const { item } = defineProps({
 const productType = computed(() => (item.variation ? item.variation?.node : item.product?.node));
 const productSlug = computed(() => `/product/${decodeURIComponent(item.product.node.slug)}`);
 const isLowStock = computed(() => (productType.value.stockQuantity ? productType.value.lowStockAmount >= productType.value.stockQuantity : false));
-const imgScr = computed(() => productType.value.image?.cartSourceUrl || productType.value.image?.sourceUrl || item.product.image?.sourceUrl || FALLBACK_IMG);
+const imgScr = computed(() => productType.value.image?.productCardSourceUrl || productType.value.image?.sourceUrl || item.product.image?.sourceUrl || FALLBACK_IMG);
 const regularPrice = computed(() => parseFloat(productType.value.rawRegularPrice));
 const salePrice = computed(() => parseFloat(productType.value.rawSalePrice));
 const salePercentage = computed(() => Math.round(((regularPrice.value - salePrice.value) / regularPrice.value) * 100) + '%');
@@ -33,12 +33,12 @@ const moveToWishList = () => {
     <div v-if="productType" class="flex items-center gap-3 group">
       <NuxtLink :to="productSlug">
         <NuxtImg
-          width="64"
-          height="64"
-          class="w-16 h-16 rounded-md skeleton"
+          class="w-16 h-16 rounded-md object-contain"
           :src="imgScr"
           :alt="productType.image?.altText || productType.name"
           :title="productType.image?.title || productType.name"
+          fit="contain"
+          :modifiers="{ fit: 'contain', bg: 'transparent' }"
           loading="lazy" />
       </NuxtLink>
       <div class="flex-1">
