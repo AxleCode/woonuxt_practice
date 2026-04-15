@@ -1,28 +1,60 @@
 <script setup lang="ts">
 const { isShowingSearch } = useSearching();
+
+const isScrolled = ref(false);
+
+onMounted(() => {
+  const onScroll = () => {
+    isScrolled.value = (window.scrollY || 0) > 10;
+  };
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onBeforeUnmount(() => window.removeEventListener('scroll', onScroll));
+});
 </script>
 
 <template>
-  <header class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm shadow-gray-200 dark:shadow-gray-900 border-b border-transparent dark:border-gray-700">
-    <div class="container flex items-center justify-between py-4">
-      <div class="flex items-center">
-        <MenuTrigger class="lg:hidden" />
-        <Logo class="w-40" />
-      </div>
-      <MainMenu class="items-center hidden gap-6 text-sm text-gray-500 dark:text-gray-400 lg:flex lg:px-4" />
-      <div class="flex justify-end items-center w-40 flex-1 ml-auto gap-4 md:gap-6">
-        <ProductSearch class="hidden sm:inline-flex max-w-80 w-[60%]" />
-        <SearchTrigger />
-        <div class="flex gap-4 items-center">
-          <SignInLink />
-          <CartTrigger />
+  <div>
+    <header
+      class="fixed top-0 left-0 right-0 z-40 min-h-20 transition-colors duration-200"
+      :class="
+        isScrolled
+          ? 'bg-white/95 shadow-sm shadow-gray-200 border-b border-gray-100 dark:bg-gray-800/95 dark:border-gray-700 dark:shadow-gray-900'
+          : 'bg-transparent border-b border-transparent'
+      ">
+      <div class="container">
+        <div class="flex min-h-26 items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
+          <!-- Left: menu (desktop) / trigger (mobile) -->
+          <div class="flex items-center gap-3">
+            <MenuTrigger class="lg:hidden" />
+            <MainMenu class="hidden lg:flex" />
+          </div>
+
+          <!-- Center: logo -->
+          <div class="flex justify-center">
+            <Logo class="w-28 sm:w-32" />
+          </div>
+
+          <!-- Right: search + icons -->
+          <div class="flex items-center justify-end gap-4">
+            <ProductSearch class="hidden lg:inline-flex max-w-80 w-[320px]" />
+            <SearchTrigger class="lg:hidden" />
+            <div class="flex items-center gap-4">
+              <SignInLink />
+              <CartTrigger />
+            </div>
+          </div>
         </div>
+
+        <Transition name="scale-y" mode="out-in">
+          <div class="pb-3 -mt-1 sm:hidden" v-if="isShowingSearch">
+            <ProductSearch class="flex w-full" />
+          </div>
+        </Transition>
       </div>
-    </div>
-    <Transition name="scale-y" mode="out-in">
-      <div class="container mb-3 -mt-1 sm:hidden" v-if="isShowingSearch">
-        <ProductSearch class="flex w-full" />
-      </div>
-    </Transition>
-  </header>
+    </header>
+
+    <!-- Spacer so fixed header doesn't overlap content -->
+    <div class="h-26" />
+  </div>
 </template>
