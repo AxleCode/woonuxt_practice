@@ -65,7 +65,10 @@ body {
 }
 
 html {
-  scrollbar-gutter: stable both-edges;
+  /*the original is scrollbar-gutter: stable both-edges;*/
+  
+  /* Avoid reserving gutter space on the left edge (desktop) */
+  scrollbar-gutter: stable;
 }
 
 img {
