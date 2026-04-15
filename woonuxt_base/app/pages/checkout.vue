@@ -86,6 +86,14 @@ const hasAnyShippingInfo = computed(() => {
 });
 
 const payNow = async () => {
+  // Prevent guest checkout: show message and redirect to login
+  if (!viewer.value) {
+    checkoutError.value = 'Please login first to checkout.';
+    buttonText.value = t('shop.checkoutButton');
+    navigateToLogin();
+    return;
+  }
+
   buttonText.value = t('general.processing');
 
   try {
