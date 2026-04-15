@@ -19,7 +19,7 @@ onMounted(() => {
       class="fixed top-0 left-0 right-0 z-40 min-h-20 transition-colors duration-200"
       :class="
         isScrolled
-          ? 'bg-white/95 shadow-sm shadow-gray-200 border-b border-gray-100 dark:bg-gray-800/95 dark:border-gray-700 dark:shadow-gray-900'
+          ? 'bg-white shadow-sm shadow-gray-200 border-b border-gray-100 dark:bg-gray-800/95 dark:border-gray-700 dark:shadow-gray-900'
           : 'bg-transparent border-b border-transparent'
       ">
       <div class="container">
