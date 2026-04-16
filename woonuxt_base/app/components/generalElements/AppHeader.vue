@@ -16,13 +16,13 @@ onMounted(() => {
 <template>
   <div>
     <header
-      class="fixed top-0 left-0 right-0 z-40 min-h-20 transition-colors duration-200"
+      class="fixed top-0 left-0 right-0 z-40 min-h-20 transition-colors bg-white"
       :class="
         isScrolled
-          ? 'bg-white shadow-sm shadow-gray-200 border-b border-gray-100 dark:bg-gray-800/95 dark:border-gray-700 dark:shadow-gray-900'
+          ? 'bg-white shadow-sm shadow-gray-100 border-b border-gray-100 dark:bg-gray-800/95 dark:border-gray-700 dark:shadow-gray-900'
           : 'bg-transparent border-b border-transparent'
       ">
-      <div class="container">
+      <div class="px-15">
         <div class="flex min-h-26 items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
           <!-- Left: menu (desktop) / trigger (mobile) -->
           <div class="flex items-center gap-3">

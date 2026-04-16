@@ -24,6 +24,12 @@ fragment VariableProduct on VariableProduct {
     cartSourceUrl: sourceUrl(size: THUMBNAIL)
     productCardSourceUrl: sourceUrl(size: WOOCOMMERCE_THUMBNAIL)
   }
+  productBrands {
+    nodes {
+      name
+      slug
+    }
+  }
   averageRating
   reviewCount
   totalSales

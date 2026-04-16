@@ -20,7 +20,7 @@ const route = useRoute();
 
 /* Rey Frankfurt–style primary nav + underline grow on hover / active (like demo) */
 .rey-main-nav :deep(a:not(.lg\:hidden)) {
-  @apply relative inline-block pb-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[#1b1f2e] no-underline transition-colors duration-200 dark:text-gray-200;
+  @apply relative inline-block pb-1 text-[13px] font-medium uppercase tracking-[0.01em] text-[#1b1f2e] no-underline transition-colors duration-200 dark:text-gray-200;
 }
 
 .rey-main-nav :deep(a:not(.lg\:hidden)::after) {

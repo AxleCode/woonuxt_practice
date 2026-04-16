@@ -22,7 +22,7 @@ const paColor = computed(() => (route.query?.filter as string | undefined)?.spli
 const placeholderImage = '/images/placeholder.jpg';
 
 const mainImage = computed<string>(() => props.node?.image?.productCardSourceUrl || props.node?.image?.sourceUrl || placeholderImage);
-const primaryCategory = computed(() => props.node?.productCategories?.nodes?.[0]?.name || '');
+const primaryBrand = computed(() => props.node?.productBrands?.nodes?.[0]?.name || '');
 
 const matchesSelectedColor = (variation: ProductVariationFragment) => {
   if (!paColor.value.length) return false;
@@ -140,7 +140,7 @@ const isQuickViewOpen = ref(false);
 <template>
   <article class="rey-card group relative h-full">
     <div
-      class="relative flex h-full flex-col overflow-hidden rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 dark:bg-gray-800 dark:ring-white/10">
+      class="relative flex h-full flex-col overflow-hidden rounded-xl bg-white p-5 shadow-sm ring-3 ring-black/5 dark:ring-white/10">
       <SaleBadge :node class="absolute z-10 top-4 left-4" />
 
       <NuxtLink v-if="node.slug" :to="productLink" class="block">
@@ -202,7 +202,7 @@ const isQuickViewOpen = ref(false);
 
       <div class="mt-5 flex flex-1 flex-col">
         <div class="min-h-[1rem] text-[11px] font-semibold uppercase tracking-[0.01em] text-gray-400">
-          {{ primaryCategory || ' ' }}
+          {{ primaryBrand || ' ' }}
         </div>
 
         <NuxtLink v-if="node.slug" :to="productLink" :title="node.name || undefined" class="block">

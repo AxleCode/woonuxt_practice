@@ -31,13 +31,13 @@ useHead({
 </script>
 
 <template>
-  <main>
+  <main class="min-h-screen w-full bg-white">
     <HeroBannerProductPage />
 
-    <div class="container flex items-start gap-16" v-if="hasProducts">
+    <div class="px-15 flex items-start" v-if="hasProducts">
       <!-- <Filters v-if="storeSettings.showFilters" /> -->
 
-      <div class="w-full">
+      <div class="w-full ">
         <div class="flex items-center justify-between w-full gap-4 mt-8 md:gap-8">
           <ProductResultCount />
           <OrderByDropdown class="hidden md:inline-flex" v-if="storeSettings.showOrderByDropdown" />

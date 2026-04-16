@@ -10,6 +10,12 @@ fragment ExternalProduct on ExternalProduct {
     cartSourceUrl: sourceUrl(size: THUMBNAIL)
     productCardSourceUrl: sourceUrl(size: WOOCOMMERCE_THUMBNAIL)
   }
+  productBrands {
+    nodes {
+      name
+      slug
+    }
+  }
   galleryImages(first: 20) {
     nodes {
       ...Image
