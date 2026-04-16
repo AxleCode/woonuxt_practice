@@ -45,6 +45,8 @@ useHead({
       <MobileMenu v-if="isShowingMobileMenu" />
     </Transition>
 
+    <Toasts />
+
     <NuxtPage />
 
     <Transition name="fade">

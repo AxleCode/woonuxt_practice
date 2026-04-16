@@ -29,6 +29,7 @@ const sliderRef = ref<HTMLElement | null>(null);
 const currentSlide = ref(0);
 
 const mainImage = computed<string>(() => props.node?.image?.productCardSourceUrl || props.node?.image?.sourceUrl || placeholderImage);
+const primaryCategory = computed(() => props.node?.productCategories?.nodes?.[0]?.name || '');
 
 const matchesSelectedColor = (variation: ProductVariationFragment) => {
   if (!paColor.value.length) return false;
@@ -139,6 +140,8 @@ const handleAddToCart = async (): Promise<void> => {
   }
 };
 
+const isQuickViewOpen = ref(false);
+
 const updateCurrentSlide = () => {
   const container = sliderRef.value;
   if (!container) return;
@@ -177,82 +180,114 @@ watch(
 </script>
 
 <template>
-  <div class="relative group">
-    <div class="relative block">
-      <SaleBadge :node class="absolute z-10 top-2 right-2" />
-      <div
-        ref="sliderRef"
-        class="no-slider flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth touch-pan-x overscroll-x-contain overscroll-y-auto [-webkit-overflow-scrolling:touch]"
-        @scroll.passive="updateCurrentSlide">
-        <template v-for="(image, slideIndex) in sliderImages" :key="image.key">
-          <NuxtLink
-            v-if="node.slug"
-            class="product-card-slide block flex-[0_0_100%] snap-start snap-always aspect-8/9 overflow-hidden rounded-lg"
-            :data-index="slideIndex"
-            :to="productLink">
-            <NuxtImg
-              :width="imgWidth"
-              :height="imgHeight"
-              :src="image.src"
-              :alt="image.alt"
-              :title="image.title"
-              :loading="slideIndex === 0 && index <= 3 ? 'eager' : 'lazy'"
-              :sizes="`sm:${imgWidth / 2}px md:${imgWidth}px`"
-              class="object-cover object-top w-full h-full rounded-lg"
-              placeholder
-              placeholder-class="blur-xl" />
-          </NuxtLink>
-          <div v-else class="product-card-slide block flex-[0_0_100%] snap-start snap-always aspect-8/9 overflow-hidden rounded-lg" :data-index="slideIndex">
-            <NuxtImg
-              :width="imgWidth"
-              :height="imgHeight"
-              :src="image.src"
-              :alt="image.alt"
-              :title="image.title"
-              :loading="slideIndex === 0 && index <= 3 ? 'eager' : 'lazy'"
-              :sizes="`sm:${imgWidth / 2}px md:${imgWidth}px`"
-              class="object-cover object-top w-full h-full rounded-lg"
-              placeholder
-              placeholder-class="blur-xl" />
-          </div>
-        </template>
-      </div>
-      <div v-if="sliderImages.length > 1" class="absolute flex gap-1 bottom-2 justify-self-center">
-        <button
-          v-for="(image, dotIndex) in sliderImages"
-          :key="`dot-${image.key}`"
-          class="product-card-dot rounded-full h-1.5 w-1.5 transition-colors cursor-pointer"
-          :class="dotIndex === currentSlide ? 'bg-white' : 'bg-gray-400/60'"
-          type="button"
-          tabindex="-1"
-          :aria-label="`View image ${Number(dotIndex) + 1} of ${sliderImages.length}`"
-          @click="scrollToSlide(dotIndex)" />
-      </div>
-    </div>
-    <div class="p-2">
-      <StarRating v-if="storeSettings.showReviews" :rating="node.averageRating ?? undefined" :count="node.reviewCount ?? undefined" />
-      <NuxtLink v-if="node.slug" :to="productLink" :title="node.name || undefined">
-        <h2 class="mb-2 font-light leading-tight text-gray-900 dark:text-gray-200 group-hover:text-primary">{{ node.name }}</h2>
-      </NuxtLink>
-      <ProductPrice class="text-sm" :sale-price="node.salePrice ?? undefined" :regular-price="node.regularPrice ?? undefined" />
+  <article class="rey-card group relative">
+    <div class="relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 dark:bg-gray-800 dark:ring-white/10">
+      <SaleBadge :node class="absolute z-10 top-4 left-4" />
 
-      <div class="mt-3 card-trigger">
-        <Button
+      <NuxtLink v-if="node.slug" :to="productLink" class="block">
+        <div class="aspect-4/5 w-full overflow-hidden rounded-xl bg-gray-50 dark:bg-gray-700">
+          <NuxtImg
+            :width="imgWidth"
+            :height="imgHeight"
+            :src="mainImage"
+            :alt="node?.image?.altText || node?.name || 'Product image'"
+            :title="node?.image?.title || node?.name || 'Product image'"
+            :loading="index <= 8 ? 'eager' : 'lazy'"
+            :sizes="`sm:${imgWidth / 2}px md:${imgWidth}px`"
+            class="h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+            placeholder
+            placeholder-class="blur-xl" />
+        </div>
+      </NuxtLink>
+      <div v-else class="aspect-4/5 w-full overflow-hidden rounded-xl bg-gray-50 dark:bg-gray-700">
+        <NuxtImg
+          :width="imgWidth"
+          :height="imgHeight"
+          :src="mainImage"
+          :alt="node?.image?.altText || node?.name || 'Product image'"
+          :title="node?.image?.title || node?.name || 'Product image'"
+          :loading="index <= 8 ? 'eager' : 'lazy'"
+          :sizes="`sm:${imgWidth / 2}px md:${imgWidth}px`"
+          class="h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+          placeholder
+          placeholder-class="blur-xl" />
+      </div>
+
+      <div class="mt-5">
+        <div v-if="primaryCategory" class="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+          {{ primaryCategory }}
+        </div>
+
+        <NuxtLink v-if="node.slug" :to="productLink" :title="node.name || undefined" class="block">
+          <h3 class="mt-2 text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
+            {{ node.name }}
+          </h3>
+        </NuxtLink>
+        <ProductPrice class="mt-2 text-sm" :sale-price="node.salePrice ?? undefined" :regular-price="node.regularPrice ?? undefined" />
+      </div>
+
+      <div class="rey-card-actions mt-5 flex items-center justify-between gap-4">
+        <button
           v-if="canAddDirectly"
-          class="w-full"
           type="button"
+          class="rey-action-link"
           :disabled="isOutOfStock || isAddingFromCard"
-          :loading="isAddingFromCard"
           @click="handleAddToCart">
           {{ $t('shop.addToCart') }}
-        </Button>
-
-        <NuxtLink v-else-if="node.slug" :to="productLink" class="block">
-          <Button class="w-full" type="button">
-            {{ isVariableProduct ? 'View options' : 'View product' }}
-          </Button>
+        </button>
+        <NuxtLink v-else-if="node.slug" :to="productLink" class="rey-action-link">
+          {{ isVariableProduct ? 'View options' : 'View product' }}
         </NuxtLink>
+
+        <button type="button" class="rey-action-link" @click="isQuickViewOpen = true">Quickview</button>
+
+        <WishlistButton v-if="node" :product="node" variant="icon" />
       </div>
     </div>
-  </div>
+
+    <ProductQuickViewModal v-model:open="isQuickViewOpen" :product="node" :product-link="productLink" />
+  </article>
 </template>
+
+<style scoped>
+@reference "#tailwind";
+
+.rey-card-actions {
+  @apply opacity-100 translate-y-0 transition-all duration-300;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rey-card-actions {
+    @apply opacity-0 translate-y-2;
+  }
+  .rey-card:hover .rey-card-actions,
+  .rey-card:focus-within .rey-card-actions {
+    @apply opacity-100 translate-y-0;
+  }
+}
+
+.rey-action-link {
+  @apply relative inline-flex items-center gap-1 pb-1 text-[12px] font-semibold uppercase tracking-[0.12em] text-gray-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-200;
+}
+
+.rey-action-link::after {
+  content: '';
+  @apply pointer-events-none absolute left-0 bottom-0 h-px w-full origin-left bg-current opacity-90;
+  transform: scaleX(0);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.rey-action-link:hover {
+  @apply text-gray-900 dark:text-white;
+}
+
+.rey-action-link:hover::after {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rey-action-link::after {
+    transition-duration: 0.01ms;
+  }
+}
+</style>

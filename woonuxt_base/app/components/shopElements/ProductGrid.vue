@@ -32,7 +32,8 @@ const productsToShow = computed(() => products.value.slice((page.value - 1) * pr
 
 @media (min-width: 768px) {
   .product-grid {
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    /* grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); */
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
