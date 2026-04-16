@@ -3,7 +3,6 @@ import type { ImageFragment, Product, ProductVariationFragment, VariationAttribu
 import { ProductTypesEnum, StockStatusEnum, type AddToCartInput } from '#gql/default';
 
 const route = useRoute();
-const { storeSettings } = useAppConfig();
 const { addToCart, toggleCart } = useCart();
 
 const props = defineProps({
@@ -18,15 +17,9 @@ type ProductImage = {
   key: string;
 };
 
-const imgWidth = 280;
-const imgHeight = Math.round(imgWidth * 1.125);
-
 // example: ?filter=pa_color[green,blue],pa_size[large]
 const paColor = computed(() => (route.query?.filter as string | undefined)?.split('pa_color[')[1]?.split(']')[0]?.split(',') || []);
 const placeholderImage = '/images/placeholder.jpg';
-
-const sliderRef = ref<HTMLElement | null>(null);
-const currentSlide = ref(0);
 
 const mainImage = computed<string>(() => props.node?.image?.productCardSourceUrl || props.node?.image?.sourceUrl || placeholderImage);
 const primaryCategory = computed(() => props.node?.productCategories?.nodes?.[0]?.name || '');
@@ -98,19 +91,20 @@ const sliderImages = computed<ProductImage[]>(() => {
   return images;
 });
 
-const activeVariationImageSrc = computed<string | null>(() => {
-  if (!paColor.value.length) return null;
-  const variations = props.node?.variations?.nodes || [];
-  const activeColorImage = variations.filter((variation: ProductVariationFragment) => matchesSelectedColor(variation));
-  if (activeColorImage?.length) return activeColorImage[0]?.image?.productCardSourceUrl || activeColorImage[0]?.image?.sourceUrl || null;
-  return null;
+/** First image aligned with slider list (color filter / gallery order) */
+const cardPrimaryImage = computed<ProductImage>(() => {
+  const first = sliderImages.value[0];
+  if (first) return first;
+  return {
+    src: mainImage.value,
+    alt: props.node?.image?.altText || props.node?.name || 'Product image',
+    title: props.node?.image?.title || props.node?.name || 'Product image',
+    key: 'fallback',
+  };
 });
 
-const activeImageIndex = computed<number>(() => {
-  if (!activeVariationImageSrc.value) return 0;
-  const index = sliderImages.value.findIndex((image) => image.src === activeVariationImageSrc.value);
-  return index >= 0 ? index : 0;
-});
+/** Second image for Rey-style hover swap (gallery / variation after main) */
+const hoverSecondImage = computed<ProductImage | null>(() => sliderImages.value[1] ?? null);
 
 const productLink = computed<string>(() => {
   const baseUrl = `/product/${decodeURIComponent(props.node.slug || '')}`;
@@ -141,108 +135,112 @@ const handleAddToCart = async (): Promise<void> => {
 };
 
 const isQuickViewOpen = ref(false);
-
-const updateCurrentSlide = () => {
-  const container = sliderRef.value;
-  if (!container) return;
-  const firstSlide = container.querySelector('.product-card-slide') as HTMLElement | null;
-  const slideWidth = firstSlide?.offsetWidth || container.clientWidth;
-  const styles = getComputedStyle(container);
-  const gap = parseFloat(styles.columnGap || styles.gap || '0');
-  const stride = slideWidth + gap;
-  const index = stride ? Math.round(container.scrollLeft / stride) : 0;
-  currentSlide.value = Math.min(Math.max(index, 0), Math.max(sliderImages.value.length - 1, 0));
-};
-
-const scrollToSlide = (index: number) => {
-  const container = sliderRef.value;
-  if (!container) return;
-  const target = container.querySelector(`[data-index="${index}"]`) as HTMLElement | null;
-  if (!target) return;
-  container.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
-};
-
-watch(
-  () => [activeImageIndex.value, sliderImages.value.length],
-  () => {
-    nextTick(() => {
-      const container = sliderRef.value;
-      if (!container?.children?.length) return;
-      const target = container.querySelector(`[data-index="${activeImageIndex.value}"]`) as HTMLElement | null;
-      if (target) {
-        container.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
-      }
-      currentSlide.value = activeImageIndex.value;
-    });
-  },
-  { immediate: true },
-);
 </script>
 
 <template>
-  <article class="rey-card group relative">
-    <div class="relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 dark:bg-gray-800 dark:ring-white/10">
+  <article class="rey-card group relative h-full">
+    <div
+      class="relative flex h-full flex-col overflow-hidden rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 dark:bg-gray-800 dark:ring-white/10">
       <SaleBadge :node class="absolute z-10 top-4 left-4" />
 
       <NuxtLink v-if="node.slug" :to="productLink" class="block">
-        <div class="aspect-4/5 w-full overflow-hidden rounded-xl bg-gray-50 dark:bg-gray-700">
-          <NuxtImg
-            :width="imgWidth"
-            :height="imgHeight"
-            :src="mainImage"
-            :alt="node?.image?.altText || node?.name || 'Product image'"
-            :title="node?.image?.title || node?.name || 'Product image'"
-            :loading="index <= 8 ? 'eager' : 'lazy'"
-            :sizes="`sm:${imgWidth / 2}px md:${imgWidth}px`"
-            class="h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-            placeholder
-            placeholder-class="blur-xl" />
+        <div class="aspect-4/5 w-full overflow-hidden rounded-xl">
+          <div
+            class="relative h-full w-full">
+            <NuxtImg
+              :src="cardPrimaryImage.src"
+              :alt="cardPrimaryImage.alt"
+              :title="cardPrimaryImage.title"
+              fit="contain"
+              :loading="index <= 8 ? 'eager' : 'lazy'"
+              :modifiers="{ fit: 'contain', background: 'transparent' }"
+              class="rey-card-image-primary absolute inset-0 z-[1] h-full w-full !object-contain"
+              :class="{ 'rey-card-image-primary--stack': !!hoverSecondImage }"
+              placeholder
+              placeholder-class="blur-xl" />
+            <NuxtImg
+              v-if="hoverSecondImage"
+              :src="hoverSecondImage.src"
+              :alt="hoverSecondImage.alt"
+              :title="hoverSecondImage.title"
+              fit="contain"
+              loading="lazy"
+              :modifiers="{ fit: 'contain', background: 'transparent' }"
+              class="rey-card-image-secondary absolute inset-0 z-[2] h-full w-full !object-contain"
+              placeholder
+              placeholder-class="blur-xl" />
+          </div>
         </div>
       </NuxtLink>
       <div v-else class="aspect-4/5 w-full overflow-hidden rounded-xl bg-gray-50 dark:bg-gray-700">
-        <NuxtImg
-          :width="imgWidth"
-          :height="imgHeight"
-          :src="mainImage"
-          :alt="node?.image?.altText || node?.name || 'Product image'"
-          :title="node?.image?.title || node?.name || 'Product image'"
-          :loading="index <= 8 ? 'eager' : 'lazy'"
-          :sizes="`sm:${imgWidth / 2}px md:${imgWidth}px`"
-          class="h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-          placeholder
-          placeholder-class="blur-xl" />
+        <div
+          class="relative h-full w-full">
+          <NuxtImg
+            :src="cardPrimaryImage.src"
+            :alt="cardPrimaryImage.alt"
+            :title="cardPrimaryImage.title"
+            fit="contain"
+            :loading="index <= 8 ? 'eager' : 'lazy'"
+            :modifiers="{ fit: 'contain', background: 'transparent' }"
+            class="rey-card-image-primary absolute inset-0 z-[1] h-full w-full !object-contain"
+            :class="{ 'rey-card-image-primary--stack': !!hoverSecondImage }"
+            placeholder
+            placeholder-class="blur-xl" />
+          <NuxtImg
+            v-if="hoverSecondImage"
+            :src="hoverSecondImage.src"
+            :alt="hoverSecondImage.alt"
+            :title="hoverSecondImage.title"
+            fit="contain"
+            loading="lazy"
+            :modifiers="{ fit: 'contain', background: 'transparent' }"
+            class="rey-card-image-secondary absolute inset-0 z-[2] h-full w-full !object-contain"
+            placeholder
+            placeholder-class="blur-xl" />
+        </div>
       </div>
 
-      <div class="mt-5">
-        <div v-if="primaryCategory" class="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-400">
-          {{ primaryCategory }}
+      <div class="mt-5 flex flex-1 flex-col">
+        <div class="min-h-[1rem] text-[11px] font-semibold uppercase tracking-[0.01em] text-gray-400">
+          {{ primaryCategory || ' ' }}
         </div>
 
         <NuxtLink v-if="node.slug" :to="productLink" :title="node.name || undefined" class="block">
-          <h3 class="mt-2 text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
+          <h3 class="mt-2 line-clamp-2 text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
             {{ node.name }}
           </h3>
         </NuxtLink>
-        <ProductPrice class="mt-2 text-sm" :sale-price="node.salePrice ?? undefined" :regular-price="node.regularPrice ?? undefined" />
+
+        <!-- Rey: price visible by default; on hover swap to CTA row (see scoped CSS) -->
+        <div class="rey-card-footer relative mt-3 min-h-[1.75rem]">
+          <div class="rey-card-price-layer">
+            <ProductPrice class="text-sm" :sale-price="node.salePrice ?? undefined" :regular-price="node.regularPrice ?? undefined" />
+          </div>
+          <div class="rey-card-actions-layer flex w-full items-center justify-between gap-3">
+            <button
+              v-if="canAddDirectly"
+              type="button"
+              class="rey-action-link shrink-0"
+              :disabled="isOutOfStock || isAddingFromCard"
+              @click.stop="handleAddToCart">
+              {{ $t('shop.addToCart') }}
+            </button>
+            <NuxtLink v-else-if="node.slug" :to="productLink" class="rey-action-link shrink-0" @click.stop>
+              {{ isVariableProduct ? 'Select options' : 'View product' }}
+            </NuxtLink>
+
+            <button type="button" class="rey-action-link shrink-0" @click.stop="isQuickViewOpen = true">Quickview</button>
+
+            <span class="inline-flex shrink-0">
+              <WishlistButton v-if="node" :product="node" variant="icon" />
+            </span>
+          </div>
+        </div>
+
+        <!-- keep cards same height without pushing price down -->
+        <div class="flex-1" aria-hidden="true" />
       </div>
 
-      <div class="rey-card-actions mt-5 flex items-center justify-between gap-4">
-        <button
-          v-if="canAddDirectly"
-          type="button"
-          class="rey-action-link"
-          :disabled="isOutOfStock || isAddingFromCard"
-          @click="handleAddToCart">
-          {{ $t('shop.addToCart') }}
-        </button>
-        <NuxtLink v-else-if="node.slug" :to="productLink" class="rey-action-link">
-          {{ isVariableProduct ? 'View options' : 'View product' }}
-        </NuxtLink>
-
-        <button type="button" class="rey-action-link" @click="isQuickViewOpen = true">Quickview</button>
-
-        <WishlistButton v-if="node" :product="node" variant="icon" />
-      </div>
     </div>
 
     <ProductQuickViewModal v-model:open="isQuickViewOpen" :product="node" :product-link="productLink" />
@@ -252,22 +250,90 @@ watch(
 <style scoped>
 @reference "#tailwind";
 
-.rey-card-actions {
-  @apply opacity-100 translate-y-0 transition-all duration-300;
+/* Rey: gallery second image crossfade on hover (fine pointer), like Frankfurt shop */
+.rey-card-image-primary {
+  @apply transition-opacity duration-500 ease-out;
+}
+
+.rey-card-image-secondary {
+  @apply pointer-events-none opacity-0 transition-opacity duration-500 ease-out;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .rey-card-actions {
-    @apply opacity-0 translate-y-2;
+  .rey-card:hover .rey-card-image-primary--stack,
+  .rey-card:focus-within .rey-card-image-primary--stack {
+    @apply opacity-0;
   }
-  .rey-card:hover .rey-card-actions,
-  .rey-card:focus-within .rey-card-actions {
-    @apply opacity-100 translate-y-0;
+
+  .rey-card:hover .rey-card-image-secondary,
+  .rey-card:focus-within .rey-card-image-secondary {
+    @apply opacity-100;
   }
 }
 
+/* Touch / coarse: first image only (no hover swap) */
+@media (hover: none), (pointer: coarse) {
+  .rey-card-image-primary--stack {
+    @apply opacity-100;
+  }
+
+  .rey-card-image-secondary {
+    @apply opacity-0;
+  }
+}
+
+/* Rey Frankfurt shop: price row default; hover hides price and reveals CTA row */
+.rey-card-footer {
+  @apply w-full;
+}
+
+.rey-card-price-layer,
+.rey-card-actions-layer {
+  @apply transition-[opacity,transform] duration-300 ease-out;
+}
+
+/* Touch / no-hover: show price + actions stacked (no swap) */
+@media (hover: none), (pointer: coarse) {
+  .rey-card-price-layer {
+    @apply relative opacity-100;
+  }
+  .rey-card-actions-layer {
+    @apply relative mt-3 flex-wrap justify-start gap-x-4 gap-y-2 opacity-100;
+    transform: none;
+  }
+}
+
+/* Fine pointer: single row swap — price out, actions in */
+@media (hover: hover) and (pointer: fine) {
+  .rey-card-price-layer {
+    @apply relative z-[1] opacity-100;
+    transform: translateY(0);
+  }
+
+  .rey-card-actions-layer {
+    @apply absolute inset-x-0 bottom-0 z-[2] flex-nowrap justify-between opacity-0;
+    transform: translateY(8px);
+    pointer-events: none;
+  }
+
+  .rey-card:hover .rey-card-price-layer,
+  .rey-card:focus-within .rey-card-price-layer {
+    @apply opacity-0;
+    transform: translateY(-6px);
+    pointer-events: none;
+  }
+
+  .rey-card:hover .rey-card-actions-layer,
+  .rey-card:focus-within .rey-card-actions-layer {
+    @apply opacity-100;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+}
+
+/* Letter-spacing: set via Tailwind `tracking-*` on each control — not here, or it overrides those classes */
 .rey-action-link {
-  @apply relative inline-flex items-center gap-1 pb-1 text-[12px] font-semibold uppercase tracking-[0.12em] text-gray-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-200;
+  @apply relative inline-flex items-center gap-1 pb-1 text-[13px] font-bold uppercase tracking-[0.01em] text-gray-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-200;
 }
 
 .rey-action-link::after {
@@ -286,6 +352,26 @@ watch(
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .rey-card-image-primary,
+  .rey-card-image-secondary {
+    transition-duration: 0.01ms;
+  }
+
+  .rey-card:hover .rey-card-image-primary--stack,
+  .rey-card:focus-within .rey-card-image-primary--stack {
+    @apply opacity-100;
+  }
+
+  .rey-card:hover .rey-card-image-secondary,
+  .rey-card:focus-within .rey-card-image-secondary {
+    @apply opacity-0;
+  }
+
+  .rey-card-price-layer,
+  .rey-card-actions-layer {
+    transition-duration: 0.01ms;
+  }
+
   .rey-action-link::after {
     transition-duration: 0.01ms;
   }
