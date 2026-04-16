@@ -3,6 +3,8 @@ import type { CheckoutInput, CreateAccountInput, UpdateCustomerInput } from '#ty
 export function useCheckout() {
   const { customer, loginUser } = useAuth();
   const { cart, refreshCart, isUpdatingCart } = useCart();
+  const { getErrorMessage } = useHelpers();
+  const { pushToast } = useToasts();
 
   const orderInput = useState<any>('orderInput', () => {
     return {
@@ -186,7 +188,13 @@ export function useCheckout() {
       return checkout;
     } catch (error: unknown) {
       console.error('Checkout error:', error);
-      checkoutError.value = error instanceof Error && error.message ? error.message : 'An error occurred during checkout. Please try again.';
+      const gqlMessage = getErrorMessage(error);
+      const fromError = error instanceof Error && error.message ? error.message : '';
+      const message = gqlMessage || fromError || 'An error occurred during checkout. Please try again.';
+      checkoutError.value = message;
+      if (import.meta.client) {
+        pushToast(message, 'error', 6000);
+      }
       return null;
     } finally {
       isProcessingOrder.value = false;
