@@ -138,9 +138,9 @@ const isQuickViewOpen = ref(false);
 </script>
 
 <template>
-  <article class="rey-card group relative h-full">
+  <article class="rey-card group relative h-full rounded-xl">
     <div
-      class="relative flex h-full flex-col overflow-hidden rounded-xl bg-white p-5 shadow-sm ring-3 ring-black/5 dark:ring-white/10">
+      class="rey-card-surface relative flex h-full flex-col overflow-hidden rounded-xl bg-white p-5 shadow-sm ring-3 ring-black/5 dark:ring-white/10">
       <SaleBadge :node class="absolute z-10 top-4 left-4" />
 
       <NuxtLink v-if="node.slug" :to="productLink" class="block">
@@ -220,18 +220,18 @@ const isQuickViewOpen = ref(false);
             <button
               v-if="canAddDirectly"
               type="button"
-              class="rey-action-link shrink-0"
+              class="rey-action-link rey-action-item rey-action-item--300 shrink-0"
               :disabled="isOutOfStock || isAddingFromCard"
               @click.stop="handleAddToCart">
               {{ $t('shop.addToCart') }}
             </button>
-            <NuxtLink v-else-if="node.slug" :to="productLink" class="rey-action-link shrink-0" @click.stop>
+            <NuxtLink v-else-if="node.slug" :to="productLink" class="rey-action-link rey-action-item rey-action-item--300 shrink-0" @click.stop>
               {{ isVariableProduct ? 'Select options' : 'View product' }}
             </NuxtLink>
 
-            <button type="button" class="rey-action-link shrink-0" @click.stop="isQuickViewOpen = true">Quickview</button>
+            <button type="button" class="rey-action-link rey-action-item rey-action-item--500 shrink-0" @click.stop="isQuickViewOpen = true">Quickview</button>
 
-            <span class="inline-flex shrink-0">
+            <span class="rey-action-item rey-action-item--700 inline-flex shrink-0">
               <WishlistButton v-if="node" :product="node" variant="icon" />
             </span>
           </div>
@@ -249,6 +249,27 @@ const isQuickViewOpen = ref(false);
 
 <style scoped>
 @reference "#tailwind";
+
+/* Rey Frankfurt shop: outside outline on hover (no layout shift) */
+.rey-card::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: inherit;
+  border: 8px solid rgb(243 244 246); /* gray-100 */
+  opacity: 0;
+  transform: scale(0.985);
+  transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rey-card:hover::after,
+  .rey-card:focus-within::after {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 
 /* Rey: gallery second image crossfade on hover (fine pointer), like Frankfurt shop */
 .rey-card-image-primary {
@@ -289,7 +310,7 @@ const isQuickViewOpen = ref(false);
 
 .rey-card-price-layer,
 .rey-card-actions-layer {
-  @apply transition-[opacity,transform] duration-300 ease-out;
+  @apply transition-[opacity,transform] duration-500 ease-out;
 }
 
 /* Touch / no-hover: show price + actions stacked (no swap) */
@@ -314,6 +335,32 @@ const isQuickViewOpen = ref(false);
     @apply absolute inset-x-0 bottom-0 z-[2] flex-nowrap justify-between opacity-0;
     transform: translateY(8px);
     pointer-events: none;
+  }
+
+  /* Staggered reveal inside the actions row */
+  .rey-card-actions-layer .rey-action-item {
+    opacity: 0;
+    transform: translateY(6px);
+    transition-property: opacity, transform;
+    transition-timing-function: ease-out;
+    transition-duration: 300ms;
+    transition-delay: 0ms;
+  }
+
+  .rey-card-actions-layer .rey-action-item--300 {
+    transition-duration: 400ms;
+  }
+  .rey-card-actions-layer .rey-action-item--500 {
+    transition-duration: 1000ms;
+  }
+  .rey-card-actions-layer .rey-action-item--700 {
+    transition-duration: 1500ms;
+  }
+
+  .rey-card:hover .rey-card-actions-layer .rey-action-item,
+  .rey-card:focus-within .rey-card-actions-layer .rey-action-item {
+    opacity: 1;
+    transform: translateY(0);
   }
 
   .rey-card:hover .rey-card-price-layer,
@@ -352,6 +399,11 @@ const isQuickViewOpen = ref(false);
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .rey-card::after {
+    transition-duration: 0.01ms;
+    transform: none;
+  }
+
   .rey-card-image-primary,
   .rey-card-image-secondary {
     transition-duration: 0.01ms;
