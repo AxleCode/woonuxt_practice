@@ -16,10 +16,10 @@ onMounted(() => {
 <template>
   <div>
     <header
-      class="fixed top-0 left-0 right-0 z-40 min-h-20 transition-colors bg-white"
+      class="fixed top-0 left-0 right-0 z-40 min-h-20 transition-colors bg-transparent"
       :class="
         isScrolled
-          ? 'bg-white shadow-sm shadow-gray-100 border-b border-gray-100 dark:bg-gray-800/95 dark:border-gray-700 dark:shadow-gray-900'
+          ? 'bg-white shadow-sm shadow-gray-100 border-b border-gray-100 dark:border-gray-700 dark:shadow-gray-900'
           : 'bg-transparent border-b border-transparent'
       ">
       <div class="px-15">
@@ -55,6 +55,7 @@ onMounted(() => {
     </header>
 
     <!-- Spacer so fixed header doesn't overlap content -->
-    <div class="h-26" />
+    <!-- <div class="h-26" /> -->
+    <div class="" />
   </div>
 </template>

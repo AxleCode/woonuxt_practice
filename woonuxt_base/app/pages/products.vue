@@ -31,7 +31,7 @@ useHead({
 </script>
 
 <template>
-  <main class="min-h-screen w-full bg-white">
+  <main class="min-h-screen pt-26 w-full bg-white">
     <HeroBannerProductPage />
 
     <div class="px-15 flex items-start" v-if="hasProducts">

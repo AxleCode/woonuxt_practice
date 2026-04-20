@@ -19,8 +19,8 @@ useSeoMeta({
 </script>
 
 <template>
-  <main>
-    <HeroBanner />
+  <main class="min-h-screen w-full bg-white">
+    <HeroBannerSlider />
 
     <div class="container flex flex-wrap items-center justify-center my-16 text-center gap-x-8 gap-y-4 brand lg:justify-between">
       <img src="/images/logoipsum-211.svg" alt="Brand 1" width="132" height="35" />
