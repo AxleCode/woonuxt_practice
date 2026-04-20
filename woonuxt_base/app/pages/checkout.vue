@@ -278,7 +278,7 @@ useSeoMeta({
 </script>
 
 <template>
-  <div class="flex flex-col min-h-150">
+  <div class="flex flex-col min-h-150 pt-26">
     <template v-if="cart && customer">
       <div v-if="cart.isEmpty" class="flex flex-col items-center justify-center flex-1 mb-12">
         <Icon name="ion:cart-outline" size="156" class="mb-5 opacity-25" />
