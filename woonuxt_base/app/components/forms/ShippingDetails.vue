@@ -3,6 +3,15 @@ import type { Address } from '#types/gql';
 
 const { updateShippingLocation } = useCheckout();
 
+const { provinces, cities, fetchProvinces, fetchCities } = useRajaOngkir()
+
+onMounted(() => {
+  fetchProvinces();
+  if (shipping.value.country === 'ID' && shipping.value.state) {
+    fetchCities(shipping.value.state);
+  }
+});
+
 const props = defineProps({
   modelValue: { type: Object as PropType<Address>, required: true },
 });
@@ -32,12 +41,32 @@ const shipping = toRef(props, 'modelValue');
       <input id="address2" v-model="shipping.address2" placeholder="Apartment, studio, or floor" autocomplete="address-line2" type="text" />
     </div>
 
-    <div class="w-full">
-      <label for="city">{{ $t('billing.city') }}</label>
-      <input id="city" v-model="shipping.city" placeholder="New York" autocomplete="locality" type="text" required />
+    <div v-if="shipping.country === 'ID'" class="w-full">
+      <label>Province</label>
+      <select v-model="shipping.state" @change="fetchCities(shipping.state)">
+        <option value="">Pilih Provinsi</option>
+        <option v-for="prov in provinces" :key="prov.id" :value="String(prov.id)">
+          {{ prov.name }}
+        </option>
+      </select>
     </div>
 
-    <div class="w-full">
+    <div v-if="shipping.country === 'ID'" class="w-full">
+      <label>City</label>
+      <select v-model="shipping.city" @change="updateShippingLocation">
+        <option value="">Pilih Kota</option>
+        <option v-for="city in cities" :key="city.id" :value="String(city.id)">
+          {{ city.name }}
+        </option>
+      </select>
+    </div>
+
+    <div v-if="shipping.country !== 'ID'" class="w-full">
+      <label for="city">{{ $t('billing.city') }}</label>
+      <input id="city" v-model="shipping.city" placeholder="New York" autocomplete="locality" type="text" @blur="updateShippingLocation" required />
+    </div>
+
+    <div v-if="shipping.country !== 'ID'" class="w-full">
       <label for="state">{{ $t('billing.state') }} ({{ $t('general.optional') }})</label>
       <StateSelect id="state" v-model="shipping.state" :default-value="shipping.state" :country-code="shipping.country" @change="updateShippingLocation" />
     </div>
@@ -49,7 +78,7 @@ const shipping = toRef(props, 'modelValue');
 
     <div class="w-full">
       <label for="zip">{{ $t('billing.zip') }}</label>
-      <input id="zip" v-model="shipping.postcode" placeholder="10001" autocomplete="postal-code" type="text" required />
+      <input id="zip" v-model="shipping.postcode" placeholder="10001" autocomplete="postal-code" type="text" @blur="updateShippingLocation" required />
     </div>
 
     <div class="w-full col-span-full">

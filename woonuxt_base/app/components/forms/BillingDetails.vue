@@ -4,6 +4,15 @@ import type { Address } from '#types/gql';
 const { updateShippingLocation } = useCheckout();
 const { isBillingAddressEnabled } = useCart();
 
+const { provinces, cities, fetchProvinces, fetchCities } = useRajaOngkir()
+
+onMounted(() => {
+  fetchProvinces();
+  if (billing.value.country === 'ID' && billing.value.state) {
+    fetchCities(billing.value.state);
+  }
+});
+
 const props = defineProps({
   modelValue: { type: Object as PropType<Address>, required: true },
 });
@@ -33,12 +42,32 @@ const billing = toRef(props, 'modelValue');
       <input id="address2" v-model="billing.address2" placeholder="Apartment, studio, or floor" autocomplete="address-line2" type="text" />
     </div>
 
-    <div v-if="isBillingAddressEnabled" class="w-full">
+    <div v-if="billing.country === 'ID'" class="w-full">
+      <label>Province</label>
+      <select v-model="billing.state" @change="fetchCities(billing.state)">
+        <option value="">Pilih Provinsi</option>
+        <option v-for="prov in provinces" :key="prov.id" :value="String(prov.id)">
+          {{ prov.name }}
+        </option>
+      </select>
+    </div>
+
+    <div v-if="billing.country === 'ID'" class="w-full">
+      <label>City</label>
+      <select v-model="billing.city" @change="updateShippingLocation">
+        <option value="">Pilih Kota</option>
+        <option v-for="city in cities" :key="city.id" :value="String(city.id)">
+          {{ city.name }}
+        </option>
+      </select>
+    </div>
+
+    <div v-if="isBillingAddressEnabled && billing.country !== 'ID'" class="w-full">
       <label for="city">{{ $t('billing.city') }}</label>
       <input id="city" v-model="billing.city" placeholder="New York" autocomplete="locality" type="text" required />
     </div>
 
-    <div v-if="isBillingAddressEnabled" class="w-full">
+    <div v-if="isBillingAddressEnabled && billing.country !== 'ID'" class="w-full">
       <label for="state">{{ $t('billing.state') }} ({{ $t('general.optional') }})</label>
       <StateSelect
         id="state"
@@ -63,5 +92,6 @@ const billing = toRef(props, 'modelValue');
       <label for="phone">{{ $t('billing.phone') }} ({{ $t('general.optional') }})</label>
       <input id="phone" v-model="billing.phone" placeholder="+1 234 567 8901" autocomplete="tel" type="tel" />
     </div>
+    
   </div>
 </template>
