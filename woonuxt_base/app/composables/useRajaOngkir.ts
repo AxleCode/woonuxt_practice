@@ -1,68 +1,67 @@
-interface RajaOngkirResponse<T> {
-  meta: { message: string; code: number; status: string };
-  data: T[];
+interface Destination {
+  id: string
+  label: string
 }
 
-interface Province {
-  id: number;
-  name: string;
-}
-
-interface City {
-  id: number;
-  name: string;
+interface ShippingCost {
+  service: string
+  description: string
+  cost: number
+  etd: string
 }
 
 export const useRajaOngkir = () => {
-  const provinces = ref<Province[]>([]);
-  const cities = ref<City[]>([]);
-  const loading = ref(false);
-  const config = useRuntimeConfig();
+  const destinations = ref<Destination[]>([])
+  const costs = ref<ShippingCost[]>([])
+  const loading = ref(false)
+  const config = useRuntimeConfig()
 
-  // Get WordPress base URL from GraphQL host
   const getWpBase = () => {
-    try {
-      const gqlHost = config.public['graphql-client']?.clients?.default?.host || '';
-      return gqlHost.replace('/graphql', '');
-    } catch (e) {
-      return '';
-    }
-  };
+    const gqlHost = config.public['graphql-client']?.clients?.default?.host || ''
+    return gqlHost.replace('/graphql', '')
+  }
 
-  const fetchProvinces = async () => {
-    loading.value = true;
+  //SEARCH DESTINATION
+  const searchDestination = async (keyword: string) => {
+    if (!keyword) return
+    loading.value = true
+
     try {
-      const wpBase = getWpBase();
-      const res = await fetch(`${wpBase}/wp-json/rajaongkir/v1/provinces`);
-      const json = (await res.json()) as RajaOngkirResponse<Province>;
-      provinces.value = json.data || [];
-    } catch (error) {
-      console.error('Error fetching provinces:', error);
+      const res = await fetch(`${getWpBase()}/wp-json/rajaongkir/v1/destination?search=${keyword}`)
+      destinations.value = await res.json()
     } finally {
-      loading.value = false;
+      loading.value = false
     }
-  };
+  }
 
-  const fetchCities = async (provinceId: string | number) => {
-    if (!provinceId) return;
-    loading.value = true;
+  //GET COST
+  const getCost = async (destination: string, weight: number) => {
+    loading.value = true
+
     try {
-      const wpBase = getWpBase();
-      const res = await fetch(`${wpBase}/wp-json/rajaongkir/v1/cities?province_id=${provinceId}`);
-      const json = (await res.json()) as RajaOngkirResponse<City>;
-      cities.value = json.data || [];
-    } catch (error) {
-      console.error('Error fetching cities:', error);
-    } finally {
-      loading.value = false;
-    }
-  };
+      const res = await fetch(`${getWpBase()}/wp-json/rajaongkir/v1/cost`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destination,
+          weight,
+          courier: 'jne'
+        })
+      })
 
+      costs.value = await res.json()
+    } finally {
+      loading.value = false
+    }
+  }
+
+  
   return {
-    provinces,
-    cities,
+    destinations,
+    costs,
     loading,
-    fetchProvinces,
-    fetchCities,
-  };
-};
+    getWpBase,
+    searchDestination,
+    getCost
+  }
+}

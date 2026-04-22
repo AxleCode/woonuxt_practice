@@ -3,15 +3,29 @@ import type { Address } from '#types/gql';
 
 const { updateShippingLocation } = useCheckout();
 
-const { provinces, cities, fetchProvinces, fetchCities } = useRajaOngkir()
+const { destinations, searchDestination, getWpBase } = useRajaOngkir()
 
-onMounted(() => {
-  fetchProvinces();
-  if (shipping.value.country === 'ID' && shipping.value.state) {
-    fetchCities(shipping.value.state);
-  }
-});
+const { refreshCart } = useCart()
 
+const wpBase = getWpBase()
+
+const selectDestination = async (d: any) => {
+  shipping.value.city = String(d.id)
+
+  await fetch(`${wpBase}/wp-json/custom/v1/set-destination`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      destination: d.id
+    })
+  })
+
+  await updateShippingLocation()
+
+  // 3. refresh cart (INI YANG PALING PENTING 🔥)
+  await refreshCart()
+}
 const props = defineProps({
   modelValue: { type: Object as PropType<Address>, required: true },
 });
@@ -41,39 +55,29 @@ const shipping = toRef(props, 'modelValue');
       <input id="address2" v-model="shipping.address2" placeholder="Apartment, studio, or floor" autocomplete="address-line2" type="text" />
     </div>
 
-    <div v-if="shipping.country === 'ID'" class="w-full">
-      <label>Province</label>
-      <select v-model="shipping.state" @change="fetchCities(shipping.state)">
-        <option value="">Pilih Provinsi</option>
-        <option v-for="prov in provinces" :key="prov.id" :value="String(prov.id)">
-          {{ prov.name }}
-        </option>
-      </select>
-    </div>
-
-    <div v-if="shipping.country === 'ID'" class="w-full">
-      <label>City</label>
-      <select v-model="shipping.city" @change="updateShippingLocation">
-        <option value="">Pilih Kota</option>
-        <option v-for="city in cities" :key="city.id" :value="String(city.id)">
-          {{ city.name }}
-        </option>
-      </select>
-    </div>
-
-    <div v-if="shipping.country !== 'ID'" class="w-full">
-      <label for="city">{{ $t('billing.city') }}</label>
-      <input id="city" v-model="shipping.city" placeholder="New York" autocomplete="locality" type="text" @blur="updateShippingLocation" required />
-    </div>
-
-    <div v-if="shipping.country !== 'ID'" class="w-full">
-      <label for="state">{{ $t('billing.state') }} ({{ $t('general.optional') }})</label>
-      <StateSelect id="state" v-model="shipping.state" :default-value="shipping.state" :country-code="shipping.country" @change="updateShippingLocation" />
-    </div>
-
-    <div class="w-full">
+    <div class="w-full col-span-full">
       <label for="country">{{ $t('billing.country') }}</label>
       <CountrySelect id="country" v-model="shipping.country" :default-value="shipping.country" @change="updateShippingLocation" />
+    </div>
+
+    <div v-if="shipping.country === 'ID'" class="relative w-full col-span-full">
+      <label>Destination</label>
+      <input
+        type="text"
+        placeholder="Find Direct Destination City..."
+        @input="searchDestination($event.target.value)"
+      />
+
+      <ul v-if="destinations.length" class="absolute z-50 bg-white border rounded-md shadow-lg w-full mt-1 max-h-60 overflow-y-auto">
+        <li
+          v-for="d in destinations"
+          class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+          :key="d.id"
+          @click="selectDestination(d)"
+        >
+          {{ d.label }}
+        </li>
+      </ul>
     </div>
 
     <div class="w-full">
