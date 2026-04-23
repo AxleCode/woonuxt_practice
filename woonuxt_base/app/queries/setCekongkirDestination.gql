@@ -1,0 +1,12 @@
+mutation SetCekongkirDestination($country: String!, $destinationId: String, $destinationLabel: String) {
+  setCekongkirDestination(
+    input: { country: $country, destinationId: $destinationId, destinationLabel: $destinationLabel }
+  ) {
+    payload {
+      success
+      country
+      destinationId
+      destinationLabel
+    }
+  }
+}

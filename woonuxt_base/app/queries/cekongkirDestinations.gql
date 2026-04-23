@@ -1,0 +1,6 @@
+query CekongkirDestinations($query: String!, $country: String) {
+  cekongkirDestinations(query: $query, country: $country) {
+    id
+    text
+  }
+}

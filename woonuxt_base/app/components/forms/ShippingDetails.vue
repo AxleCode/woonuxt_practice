@@ -1,36 +1,59 @@
 <script lang="ts" setup>
 import type { Address } from '#types/gql';
 
-const { updateShippingLocation } = useCheckout();
+const { updateShippingLocation, isUpdatingShipping } = useCheckout();
+const {
+  destinationQuery,
+  destinationResults,
+  selectedDestination,
+  isSearchingDestination,
+  isSettingDestination,
+  destinationError,
+  needsDestinationSelection,
+  searchDestination,
+  setDestination,
+  resetDestination,
+} = useRajaOngkir();
 
-const { destinations, searchDestination, getWpBase } = useRajaOngkir()
-
-const { refreshCart } = useCart()
-
-const wpBase = getWpBase()
-
-const selectDestination = async (d: any) => {
-  shipping.value.city = String(d.id)
-
-  await fetch(`${wpBase}/wp-json/custom/v1/set-destination`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      destination: d.id
-    })
-  })
-
-  await updateShippingLocation()
-
-  // 3. refresh cart (INI YANG PALING PENTING 🔥)
-  await refreshCart()
-}
 const props = defineProps({
   modelValue: { type: Object as PropType<Address>, required: true },
 });
 
 const shipping = toRef(props, 'modelValue');
+
+// Reset destinasi saat country berubah ke non-ID
+watch(
+  () => shipping.value.country,
+  (newCountry, oldCountry) => {
+    if (oldCountry && newCountry !== oldCountry) {
+      resetDestination();
+    }
+    updateShippingLocation();
+  },
+);
+
+// Trigger shipping rate recalculation when postcode loses focus
+const onPostcodeBlur = () => {
+  if (shipping.value.postcode && shipping.value.country) {
+    updateShippingLocation();
+  }
+};
+
+// Handle input di field destinasi RajaOngkir
+const onDestinationInput = (event: Event) => {
+  const value = (event.target as HTMLInputElement).value;
+  destinationQuery.value = value;
+  if (shipping.value.country) {
+    searchDestination(value, shipping.value.country);
+  }
+};
+
+// Handle pilih destinasi dari dropdown
+const onSelectDestination = async (destination: { id: string; text: string }) => {
+  await setDestination(destination, shipping.value.country || 'ID');
+};
+
+const isLoading = computed(() => isSettingDestination.value || isUpdatingShipping.value);
 </script>
 
 <template>
@@ -55,39 +78,100 @@ const shipping = toRef(props, 'modelValue');
       <input id="address2" v-model="shipping.address2" placeholder="Apartment, studio, or floor" autocomplete="address-line2" type="text" />
     </div>
 
-    <div class="w-full col-span-full">
+    <div class="w-full">
+      <label for="city">{{ $t('billing.city') }}</label>
+      <input id="city" v-model="shipping.city" placeholder="New York" autocomplete="locality" type="text" required />
+    </div>
+
+    <div class="w-full">
+      <label for="state">{{ $t('billing.state') }} ({{ $t('general.optional') }})</label>
+      <StateSelect id="state" v-model="shipping.state" :default-value="shipping.state" :country-code="shipping.country" @change="updateShippingLocation" />
+    </div>
+
+    <div class="w-full">
       <label for="country">{{ $t('billing.country') }}</label>
       <CountrySelect id="country" v-model="shipping.country" :default-value="shipping.country" @change="updateShippingLocation" />
     </div>
 
-    <div v-if="shipping.country === 'ID'" class="relative w-full col-span-full">
-      <label>Destination</label>
-      <input
-        type="text"
-        placeholder="Find Direct Destination City..."
-        @input="searchDestination($event.target.value)"
-      />
-
-      <ul v-if="destinations.length" class="absolute z-50 bg-white border rounded-md shadow-lg w-full mt-1 max-h-60 overflow-y-auto">
-        <li
-          v-for="d in destinations"
-          class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-          :key="d.id"
-          @click="selectDestination(d)"
-        >
-          {{ d.label }}
-        </li>
-      </ul>
-    </div>
-
     <div class="w-full">
       <label for="zip">{{ $t('billing.zip') }}</label>
-      <input id="zip" v-model="shipping.postcode" placeholder="10001" autocomplete="postal-code" type="text" @blur="updateShippingLocation" required />
+      <input
+        id="zip"
+        v-model="shipping.postcode"
+        placeholder="10001"
+        autocomplete="postal-code"
+        type="text"
+        required
+        @blur="onPostcodeBlur" />
     </div>
 
     <div class="w-full col-span-full">
       <label for="phone">{{ $t('billing.phone') }} ({{ $t('general.optional') }})</label>
       <input id="phone" v-model="shipping.phone" placeholder="+1 234 567 8901" autocomplete="tel" type="tel" />
+    </div>
+
+    <!-- Destinasi RajaOngkir — hanya tampil untuk Indonesia -->
+    <div v-if="needsDestinationSelection" class="w-full col-span-full">
+      <label for="rajaongkir-destination">
+        Kota / Kecamatan Tujuan
+        <span class="text-red-500">*</span>
+      </label>
+      <p class="mb-1 text-xs text-gray-500">Pilih kota atau kecamatan untuk menghitung ongkos kirim</p>
+
+      <!-- Input autocomplete -->
+      <div class="relative">
+        <input
+          id="rajaongkir-destination"
+          :value="destinationQuery"
+          type="text"
+          placeholder="Cari kota atau kecamatan... (min. 2 karakter)"
+          autocomplete="off"
+          class="w-full"
+          :disabled="isLoading"
+          @input="onDestinationInput" />
+
+        <!-- Loading indicator saat mencari -->
+        <div v-if="isSearchingDestination" class="absolute right-3 top-1/2 -translate-y-1/2">
+          <LoadingIcon size="16" />
+        </div>
+
+        <!-- Dropdown hasil pencarian -->
+        <ul
+          v-if="destinationResults.length > 0"
+          class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto dark:bg-gray-800 dark:border-gray-600">
+          <li
+            v-for="dest in destinationResults"
+            :key="dest.id"
+            class="px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
+            @mousedown.prevent="onSelectDestination(dest)">
+            {{ dest.text }}
+          </li>
+        </ul>
+      </div>
+
+      <!-- Destinasi terpilih -->
+      <div v-if="selectedDestination" class="flex items-center gap-2 mt-2 text-sm text-green-600 dark:text-green-400">
+        <Icon name="ion:checkmark-circle" size="16" />
+        <span>{{ selectedDestination.text }}</span>
+      </div>
+
+      <!-- Error -->
+      <p v-if="destinationError" class="mt-1 text-sm text-red-500">{{ destinationError }}</p>
+    </div>
+
+    <!-- Tombol Cek Ongkir -->
+    <div class="col-span-full">
+      <button
+        type="button"
+        class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
+        :disabled="isLoading || (needsDestinationSelection && !selectedDestination)"
+        @click="updateShippingLocation">
+        <LoadingIcon v-if="isLoading" size="16" />
+        <span>{{ isLoading ? 'Menghitung...' : 'Cek Ongkir' }}</span>
+      </button>
+      <p v-if="needsDestinationSelection && !selectedDestination" class="mt-1 text-xs text-amber-600">
+        Pilih kota/kecamatan tujuan terlebih dahulu
+      </p>
     </div>
   </div>
 </template>

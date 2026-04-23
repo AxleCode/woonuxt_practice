@@ -16,6 +16,7 @@ export function useCheckout() {
   });
 
   const isProcessingOrder = useState<boolean>('isProcessingOrder', () => false);
+  const isUpdatingShipping = useState<boolean>('isUpdatingShipping', () => false);
   const checkoutError = ref<string | null>(null);
 
   // Helper function to build checkout payload
@@ -93,6 +94,7 @@ export function useCheckout() {
 
   // if Country or State are changed, calculate the shipping rates again
   async function updateShippingLocation() {
+    isUpdatingShipping.value = true;
     isUpdatingCart.value = true;
 
     try {
@@ -130,6 +132,7 @@ export function useCheckout() {
     } catch (error) {
       console.error('Error updating shipping location:', error);
     } finally {
+      isUpdatingShipping.value = false;
       isUpdatingCart.value = false;
     }
   }
@@ -204,6 +207,7 @@ export function useCheckout() {
   return {
     orderInput,
     isProcessingOrder,
+    isUpdatingShipping,
     checkoutError,
     processCheckout,
     updateShippingLocation,
