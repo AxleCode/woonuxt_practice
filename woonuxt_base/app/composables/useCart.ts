@@ -7,7 +7,8 @@ let cartMutationQueue: Promise<void> = Promise.resolve();
  * @description A composable that handles the cart in local storage
  */
 export function useCart() {
-  const { storeSettings } = useAppConfig();
+  // `useAppConfig()` is typed as unknown in this repo; cast to keep TS happy.
+  const { storeSettings } = useAppConfig() as any;
   const isOptimisticCartMode = computed(() => (storeSettings.cartMode ?? 'optimistic') === 'optimistic');
 
   const cart = useState<Cart | null>('cart', () => null);
@@ -367,10 +368,12 @@ export function useCart() {
   }
 
   // Update shipping method
-  async function updateShippingMethod(shippingMethods: string): Promise<void> {
+  // Accept a single rate id or a list (empty list clears selection)
+  async function updateShippingMethod(shippingMethods: string | string[]): Promise<void> {
     isUpdatingCart.value = true;
     try {
-      const { updateShippingMethod } = await GqlChangeShippingMethod({ shippingMethods });
+      const methods = Array.isArray(shippingMethods) ? shippingMethods : [shippingMethods];
+      const { updateShippingMethod } = await GqlChangeShippingMethod({ shippingMethods: methods });
       updateCart(updateShippingMethod?.cart);
     } catch (error: unknown) {
       const errorMsg = getErrorMessage(error);

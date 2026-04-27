@@ -1,3 +1,63 @@
+import type { CountriesEnum, GeoLocation } from '#types/gql';
+
+/**
+ * Parse label destinasi RajaOngkir Indonesia (dipisah koma).
+ * Contoh: "BATUNUNGGAL, BANDUNG KIDUL, BANDUNG, JAWA BARAT, 40266"
+ */
+function parseRajaOngkirDestinationLabel(text: string): { city: string; provinceName: string; postcode: string } | null {
+  const parts = text
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length < 3) return null;
+
+  const lastRaw = parts[parts.length - 1] ?? '';
+  const postcodeDigits = lastRaw.replace(/\D/g, '');
+  const hasPostcode = postcodeDigits.length >= 5;
+
+  if (hasPostcode) {
+    const postcode = postcodeDigits.slice(-5);
+    if (parts.length >= 4) {
+      const provinceName = parts[parts.length - 2] ?? '';
+      const city = parts[parts.length - 3] ?? '';
+      if (!city || !provinceName) return null;
+      return { city, provinceName, postcode };
+    }
+    if (parts.length === 3) {
+      const provinceName = parts[1] ?? '';
+      const city = parts[0] ?? '';
+      if (!city || !provinceName) return null;
+      return { city, provinceName, postcode };
+    }
+    return null;
+  }
+
+  // Tanpa kode pos di label — isi kota & provinsi saja
+  if (parts.length >= 2) {
+    return {
+      city: parts[parts.length - 2] ?? '',
+      provinceName: parts[parts.length - 1] ?? '',
+      postcode: '',
+    };
+  }
+  return null;
+}
+
+function findStateCodeForProvince(states: GeoLocation[], provinceLabel: string): string {
+  const needle = provinceLabel.trim().toLowerCase();
+  if (!needle) return '';
+
+  for (const s of states) {
+    const name = s.name.trim().toLowerCase();
+    if (name === needle) return s.code;
+  }
+  for (const s of states) {
+    const name = s.name.trim().toLowerCase();
+    if (name.includes(needle) || needle.includes(name)) return s.code;
+  }
+  return '';
+}
+
 /**
  * useRajaOngkir
  *
@@ -13,6 +73,35 @@
 export function useRajaOngkir() {
   const { refreshCart, isUpdatingCart } = useCart();
   const { customer } = useAuth();
+  const { getStatesForCountry, countryStatesDict } = useCountry();
+
+  /**
+   * Isi city / state (kode provinsi WC) / postcode dari teks destinasi RajaOngkir.
+   */
+  async function syncAddressFromDestinationLabel(
+    address: { city?: string | null; state?: string | null; postcode?: string | null; country?: string | null },
+    destinationText: string,
+  ): Promise<void> {
+    const parsed = parseRajaOngkirDestinationLabel(destinationText);
+    if (!parsed || !parsed.city) return;
+
+    const country = (address.country || 'ID') as CountriesEnum;
+
+    await getStatesForCountry(country);
+
+    for (let i = 0; i < 30; i++) {
+      const states = countryStatesDict.value[country];
+      if (states?.length) break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+
+    const states = countryStatesDict.value[country] ?? [];
+    const stateCode = findStateCodeForProvince(states, parsed.provinceName);
+
+    address.city = parsed.city;
+    if (parsed.postcode) address.postcode = parsed.postcode;
+    if (stateCode) address.state = stateCode;
+  }
 
   // State untuk autocomplete destinasi
   const destinationQuery = useState<string>('rajaongkir_destination_query', () => '');
@@ -129,5 +218,6 @@ export function useRajaOngkir() {
     searchDestination,
     setDestination,
     resetDestination,
+    syncAddressFromDestinationLabel,
   };
 }

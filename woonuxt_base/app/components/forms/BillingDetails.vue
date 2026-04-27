@@ -14,6 +14,7 @@ const {
   searchDestination,
   setDestination,
   resetDestination,
+  syncAddressFromDestinationLabel,
 } = useRajaOngkir();
 
 const props = defineProps({
@@ -49,9 +50,12 @@ const onDestinationInput = (event: Event) => {
   }
 };
 
-// Handle pilih destinasi dari dropdown
+// Handle pilih destinasi dari dropdown — isi kota / provinsi / kode pos dari label RajaOngkir
 const onSelectDestination = async (destination: { id: string; text: string }) => {
-  await setDestination(destination, billing.value.country || 'ID');
+  const ok = await setDestination(destination, billing.value.country || 'ID');
+  if (!ok) return;
+  await syncAddressFromDestinationLabel(billing.value, destination.text);
+  await updateShippingLocation();
 };
 
 const isLoading = computed(() => isSettingDestination.value || isUpdatingShipping.value);
@@ -79,12 +83,12 @@ const isLoading = computed(() => isSettingDestination.value || isUpdatingShippin
       <input id="address2" v-model="billing.address2" placeholder="Apartment, studio, or floor" autocomplete="address-line2" type="text" />
     </div>
 
-    <div v-if="isBillingAddressEnabled" class="w-full">
+    <div v-if="isBillingAddressEnabled" class="w-full" hidden>
       <label for="city">{{ $t('billing.city') }}</label>
       <input id="city" v-model="billing.city" placeholder="New York" autocomplete="locality" type="text" required />
     </div>
 
-    <div v-if="isBillingAddressEnabled" class="w-full">
+    <div v-if="isBillingAddressEnabled" class="w-full" hidden>
       <label for="state">{{ $t('billing.state') }} ({{ $t('general.optional') }})</label>
       <StateSelect
         id="state"
@@ -95,12 +99,17 @@ const isLoading = computed(() => isSettingDestination.value || isUpdatingShippin
         autocomplete="address-level1" />
     </div>
 
-    <div v-if="isBillingAddressEnabled" class="w-full">
+    <div v-if="isBillingAddressEnabled" class="w-full col-span-full">
+      <label for="phone">{{ $t('billing.phone') }}  <span class="text-red-500">*</span></label>
+      <input id="phone" v-model="billing.phone" placeholder="+1 234 567 8901" autocomplete="tel" type="tel" />
+    </div>
+    
+    <div v-if="isBillingAddressEnabled" class="w-full col-span-full">
       <label for="country">{{ $t('billing.country') }}</label>
       <CountrySelect id="country" v-model="billing.country" :default-value="billing.country" @change="updateShippingLocation" autocomplete="country" />
     </div>
 
-    <div v-if="isBillingAddressEnabled" class="w-full">
+    <div v-if="isBillingAddressEnabled" class="w-full" hidden>
       <label for="zip">{{ $t('billing.zip') }}</label>
       <input
         id="zip"
@@ -112,25 +121,20 @@ const isLoading = computed(() => isSettingDestination.value || isUpdatingShippin
         @blur="onPostcodeBlur" />
     </div>
 
-    <div v-if="isBillingAddressEnabled" class="w-full col-span-full">
-      <label for="phone">{{ $t('billing.phone') }} ({{ $t('general.optional') }})</label>
-      <input id="phone" v-model="billing.phone" placeholder="+1 234 567 8901" autocomplete="tel" type="tel" />
-    </div>
-
     <!-- Destinasi RajaOngkir — hanya tampil untuk Indonesia -->
     <div v-if="isBillingAddressEnabled && needsDestinationSelection" class="w-full col-span-full">
       <label for="rajaongkir-destination-billing">
-        Kota / Kecamatan Tujuan
+        City or district
         <span class="text-red-500">*</span>
       </label>
-      <p class="mb-1 text-xs text-gray-500">Pilih kota atau kecamatan untuk menghitung ongkos kirim</p>
+      <p class="mb-1 text-xs text-gray-500">Select a city or district to calculate shipping costs</p>
 
       <div class="relative">
         <input
           id="rajaongkir-destination-billing"
           :value="destinationQuery"
           type="text"
-          placeholder="Cari kota atau kecamatan... (min. 2 karakter)"
+          placeholder="Search for a city or sub-district, for example: Jakarta, Kemayoran, Senen"
           autocomplete="off"
           class="w-full"
           :disabled="isLoading"
@@ -162,7 +166,7 @@ const isLoading = computed(() => isSettingDestination.value || isUpdatingShippin
     </div>
 
     <!-- Tombol Cek Ongkir -->
-    <div v-if="isBillingAddressEnabled" class="col-span-full">
+    <div v-if="isBillingAddressEnabled" class="col-span-full" hidden>
       <button
         type="button"
         class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"

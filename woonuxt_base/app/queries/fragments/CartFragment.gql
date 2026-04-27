@@ -20,6 +20,11 @@ fragment Cart on Cart {
     discountAmount
     code
   }
+  fees {
+    id
+    name
+    amount
+  }
   isEmpty
   contents(first: 100) {
     itemCount
@@ -27,6 +32,10 @@ fragment Cart on Cart {
     nodes {
       quantity
       key
+      extraData {
+        key
+        value
+      }
       product {
         node {
           name

@@ -9,6 +9,11 @@ useSeoMeta({
   title: 'Shopping Cart',
   description: 'View and manage items in your shopping cart',
 });
+
+const formatRupiah = (value) => {
+  const number = Math.abs(parseFloat(value || 0))
+  return new Intl.NumberFormat('id-ID').format(number)
+}
 </script>
 
 <template>
@@ -41,6 +46,14 @@ useSeoMeta({
               <div v-if="cart.discountTotal && parseFloat(cart.rawDiscountTotal || '0') > 0" class="flex justify-between text-primary dark:text-primary-light">
                 <span>{{ $t('shop.discount') }}</span>
                 <span class="font-medium tabular-nums">- <span v-html="cart.discountTotal" /></span>
+              </div>
+
+              <!-- Additional Fees (Payment Fee, Handling, etc) -->
+              <div v-for="fee in (Array.isArray(cart.fees) ? cart.fees : cart.fees ? [cart.fees] : [])" :key="fee.id || fee.name" class="flex justify-between text-gray-700 dark:text-gray-300">
+                <span>{{ fee.name }}</span>
+                <span class="font-medium tabular-nums" :class="{ 'text-red-500': parseFloat(fee.amount || 0) < 0 }">
+                    - Rp{{ formatRupiah(fee.amount) }}
+                </span>
               </div>
 
               <div class="border-t border-gray-200 dark:border-gray-700 pt-3 flex justify-between items-center">

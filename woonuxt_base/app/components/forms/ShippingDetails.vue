@@ -13,6 +13,7 @@ const {
   searchDestination,
   setDestination,
   resetDestination,
+  syncAddressFromDestinationLabel,
 } = useRajaOngkir();
 
 const props = defineProps({
@@ -48,9 +49,12 @@ const onDestinationInput = (event: Event) => {
   }
 };
 
-// Handle pilih destinasi dari dropdown
+// Handle pilih destinasi dari dropdown — isi kota / provinsi / kode pos dari label RajaOngkir
 const onSelectDestination = async (destination: { id: string; text: string }) => {
-  await setDestination(destination, shipping.value.country || 'ID');
+  const ok = await setDestination(destination, shipping.value.country || 'ID');
+  if (!ok) return;
+  await syncAddressFromDestinationLabel(shipping.value, destination.text);
+  await updateShippingLocation();
 };
 
 const isLoading = computed(() => isSettingDestination.value || isUpdatingShipping.value);
@@ -78,45 +82,46 @@ const isLoading = computed(() => isSettingDestination.value || isUpdatingShippin
       <input id="address2" v-model="shipping.address2" placeholder="Apartment, studio, or floor" autocomplete="address-line2" type="text" />
     </div>
 
-    <div class="w-full">
-      <label for="city">{{ $t('billing.city') }}</label>
-      <input id="city" v-model="shipping.city" placeholder="New York" autocomplete="locality" type="text" required />
+    <div class="w-full col-span-full">
+      <label for="phone">{{ $t('billing.phone') }}  <span class="text-red-500">*</span></label>
+      <input id="phone" v-model="shipping.phone" placeholder="+1 234 567 8901" autocomplete="tel" type="tel" required />
     </div>
 
-    <div class="w-full">
-      <label for="state">{{ $t('billing.state') }} ({{ $t('general.optional') }})</label>
-      <StateSelect id="state" v-model="shipping.state" :default-value="shipping.state" :country-code="shipping.country" @change="updateShippingLocation" />
-    </div>
-
-    <div class="w-full">
+    <div class="w-full col-span-full" >
       <label for="country">{{ $t('billing.country') }}</label>
       <CountrySelect id="country" v-model="shipping.country" :default-value="shipping.country" @change="updateShippingLocation" />
     </div>
 
-    <div class="w-full">
+    <div class="w-full" hidden>
+      <label for="state">{{ $t('billing.state') }}</label>
+      <StateSelect id="state" v-model="shipping.state" disabled class="bg-gray-200 cursor-not-allowed" :default-value="shipping.state" :country-code="shipping.country" @change="updateShippingLocation" />
+    </div>
+
+    <div class="w-full" hidden>
+      <label for="city">{{ $t('billing.city') }}</label>
+      <input id="city" v-model="shipping.city" placeholder="New York" disabled class="bg-gray-200 cursor-not-allowed" autocomplete="locality" type="text" required />
+    </div>
+
+    <div class="w-full" hidden>
       <label for="zip">{{ $t('billing.zip') }}</label>
       <input
         id="zip"
         v-model="shipping.postcode"
         placeholder="10001"
+        disabled class="bg-gray-200 cursor-not-allowed"
         autocomplete="postal-code"
         type="text"
         required
         @blur="onPostcodeBlur" />
     </div>
 
-    <div class="w-full col-span-full">
-      <label for="phone">{{ $t('billing.phone') }} ({{ $t('general.optional') }})</label>
-      <input id="phone" v-model="shipping.phone" placeholder="+1 234 567 8901" autocomplete="tel" type="tel" />
-    </div>
-
     <!-- Destinasi RajaOngkir — hanya tampil untuk Indonesia -->
     <div v-if="needsDestinationSelection" class="w-full col-span-full">
       <label for="rajaongkir-destination">
-        Kota / Kecamatan Tujuan
+        City or district
         <span class="text-red-500">*</span>
       </label>
-      <p class="mb-1 text-xs text-gray-500">Pilih kota atau kecamatan untuk menghitung ongkos kirim</p>
+      <p class="mb-1 text-xs text-gray-500">Select a city or district to calculate shipping costs</p>
 
       <!-- Input autocomplete -->
       <div class="relative">
@@ -124,7 +129,7 @@ const isLoading = computed(() => isSettingDestination.value || isUpdatingShippin
           id="rajaongkir-destination"
           :value="destinationQuery"
           type="text"
-          placeholder="Cari kota atau kecamatan... (min. 2 karakter)"
+          placeholder="Search for a city or sub-district, for example: Jakarta, Kemayoran, Senen"
           autocomplete="off"
           class="w-full"
           :disabled="isLoading"
@@ -160,7 +165,7 @@ const isLoading = computed(() => isSettingDestination.value || isUpdatingShippin
     </div>
 
     <!-- Tombol Cek Ongkir -->
-    <div class="col-span-full">
+    <div class="col-span-full" hidden>
       <button
         type="button"
         class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"

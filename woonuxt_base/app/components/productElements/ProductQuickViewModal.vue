@@ -391,7 +391,7 @@ watch(
   transform: translateY(12px) scale(0.985);
 }
 .rey-qv-modal-leave-active {
-  transition: opacity 0.2s ease-in;
+  transition: opacity 3.2s ease-in;
 }
 .rey-qv-modal-leave-to {
   opacity: 0;
